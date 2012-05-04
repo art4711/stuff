@@ -1,5 +1,10 @@
 This is stuff. Some of it does things.
 
+ alloca_games/
+  - Did you know that alloca() and variable length arrays shouldn't be
+    mixed when using gcc (and maybe others)? This tests what happens when
+    you do.
+
  avl/
    - Ted Unangst wrote an avl tree implementation that never got used for
      whatever he wrote it for. I beat it up to make it smaller and faster
