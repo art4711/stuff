@@ -32,8 +32,7 @@ struct name {								\
 
 #define HEAP_ENTRY(type)						\
 	struct {							\
-		HEAP_TYPE_PREFIX type *he_left;				\
-		HEAP_TYPE_PREFIX type *he_right;			\
+		HEAP_TYPE_PREFIX type *he_link[2];			\
 	}
 
 #define HEAP_ENTRY_INITIALIZER						\
@@ -45,8 +44,8 @@ struct name {								\
 } while (0)
 
 #define HEAP_FIRST(head) ((head)->hh_root)
-#define HEAP_LEFT(elm, field) ((elm)->field.he_left)
-#define HEAP_RIGHT(elm, field) ((elm)->field.he_right)
+#define HEAP_LEFT(elm, field) ((elm)->field.he_link[0])
+#define HEAP_RIGHT(elm, field) ((elm)->field.he_link[1])
 
 #define HEAP_EMPTY(head) ((head)->hh_root == NULL)
 
@@ -55,74 +54,86 @@ struct name {								\
 #define HEAP_UPDATE_HEAD(name, head) name##_HEAP_UPDATE_HEAD(head)
 
 #define HEAP_PROTOTYPE(name, type, field, cmp)				\
-void    name##_HEAP_linkin(HEAP_TYPE_PREFIX type **pp, long n, HEAP_TYPE_PREFIX type *e);\
-HEAP_TYPE_PREFIX type ** name##_HEAP_link(HEAP_TYPE_PREFIX type **pp, int n);\
+int    name##_HEAP_linkin(HEAP_TYPE_PREFIX type **pp, long n, HEAP_TYPE_PREFIX type *e);\
 void	name##_HEAP_INSERT(struct name *, HEAP_TYPE_PREFIX type *);	\
 void	name##_HEAP_REMOVE_HEAD(struct name *);				\
 void	name##_HEAP_UPDATE_HEAD(struct name *);
 
+/*
+ * The HEAP is organized as a binary tree, with all levels filled except the last.
+ *
+ * New elements are inserted at the first free position, then moved upwards
+ * until the heap condition is satisfied. The positions in the tree are enumerated
+ * like this:
+ *  root is at position 1,
+ *  left side of the tree is all positions that have the lowest bit set,
+ *  right side of the tree is all positions that don't have the lowest bit set.
+ * This is recursive and for each level of the tree we shift away the bit we just
+ * examined.
+ *                          1
+ *                   /             \
+ *                11                 10
+ *             /     \             /     \
+ *          111       110       101       100
+ *          / \       / \       / \       / \
+ *       1111 1110 1101 1100 1011 1010 1001 1000
+ *
+ * Insertion is done through the linkin function which recurses down to the
+ * first free position in the heap, inserts the element at that position,
+ * then on the way back up from the recursion swaps the elements traversed
+ * until the heap condition is satisfied. The linkin functions returns 0
+ * when its job is done and no more compares are necessary.
+ *
+ * Head update is done by swapping the head node with its largest child
+ * until the heap condition is satisfied.
+ *
+ * Head removal is done by moving the last element of the heap into the head
+ * and then as a head update.
+ */
+
 #define HEAP_GENERATE(name, type, field, cmp)				\
 									\
-HEAP_FUNCTION_PREFIX void						\
+HEAP_FUNCTION_PREFIX int						\
 name##_HEAP_linkin(HEAP_TYPE_PREFIX type **pp, long n, HEAP_TYPE_PREFIX type *e)\
 {									\
+	int c;								\
 	if (n == 1) {							\
 		*pp = e;						\
-		return;							\
+		return 1;						\
 	}								\
 									\
-	if (n & 1) {							\
-		name##_HEAP_linkin(&((*pp)->field.he_left), n >> 1, e);\
-		if (cmp((*pp), e) > 0) {				\
-			HEAP_TYPE_PREFIX type *r = (*pp)->field.he_right;\
-			(*pp)->field.he_left = e->field.he_left;	\
-			(*pp)->field.he_right = e->field.he_right;	\
-			e->field.he_left = *pp;				\
-			e->field.he_right = r;				\
-			*pp = e;					\
-		}							\
-	} else {							\
-		name##_HEAP_linkin(&((*pp)->field.he_right), n >> 1, e);\
-		if (cmp((*pp), e) > 0) {				\
-			HEAP_TYPE_PREFIX type *l = (*pp)->field.he_left;\
-			(*pp)->field.he_left = e->field.he_left;	\
-			(*pp)->field.he_right = e->field.he_right;	\
-			e->field.he_right = *pp;			\
-			e->field.he_left = l;				\
-			*pp = e;					\
-		}							\
+	c = n & 1;							\
+	if (name##_HEAP_linkin(&((*pp)->field.he_link[!c]), n>>1, e) && \
+	    cmp((*pp), e) > 0) {					\
+		HEAP_TYPE_PREFIX type *x = (*pp)->field.he_link[c];	\
+		(*pp)->field = e->field; 				\
+		e->field.he_link[!c] = *pp;				\
+		e->field.he_link[c] = x;				\
+		*pp = e;						\
+		return 1;						\
 	}								\
-									\
+	return 0;							\
 }									\
 									\
 HEAP_FUNCTION_PREFIX void						\
 name##_HEAP_INSERT(struct name *head, HEAP_TYPE_PREFIX type *el)	\
 {									\
-	el->field.he_left = el->field.he_right = NULL;			\
+	el->field.he_link[0] = el->field.he_link[1] = NULL;	       	\
 	name##_HEAP_linkin(&head->hh_root, ++head->hh_num, el);		\
-}									\
-									\
-HEAP_FUNCTION_PREFIX HEAP_TYPE_PREFIX type **				\
-name##_HEAP_link(HEAP_TYPE_PREFIX type **pp, int n)			\
-{									\
-	for (; n != 1; n >>= 1)						\
-		pp = (n & 1) ? &(*pp)->field.he_left : 			\
-		    &(*pp)->field.he_right;				\
-	return (pp);							\
 }									\
 									\
 HEAP_FUNCTION_PREFIX void						\
 name##_HEAP_REMOVE_HEAD(struct name *head)				\
 {									\
 	HEAP_TYPE_PREFIX type **pp, *el, *r;				\
-									\
-	pp = name##_HEAP_link(&head->hh_root, head->hh_num);		\
+	int n;								\
+	for (n = head->hh_num, pp = &head->hh_root; n != 1; n >>= 1)	\
+		pp = &(*pp)->field.he_link[!(n & 1)];			\
 	el = *pp;							\
 	r = head->hh_root;						\
 	head->hh_root = el;						\
 	*pp = NULL;							\
-	el->field.he_left = r->field.he_left;				\
-	el->field.he_right = r->field.he_right;				\
+	el->field = r->field;						\
 	head->hh_num--;							\
 	name##_HEAP_UPDATE_HEAD(head);					\
 }									\
@@ -135,27 +146,19 @@ name##_HEAP_UPDATE_HEAD(struct name *head)				\
 	if (head->hh_root == NULL)					\
 		return;							\
 									\
-	for (pp = &head->hh_root; (*pp)->field.he_right != NULL;) {	\
-		HEAP_TYPE_PREFIX type *r = (*pp)->field.he_right;	\
-		HEAP_TYPE_PREFIX type *l = (*pp)->field.he_left;	\
-									\
-		if (l != NULL && cmp(l, r) <= 0) {			\
-			if (cmp((*pp), l) <= 0)				\
-				return;					\
-			(*pp)->field = l->field;			\
-			l->field.he_left = *pp;				\
-			l->field.he_right = r;				\
-			*pp = l;					\
-			pp = &(*pp)->field.he_left;			\
-		} else {						\
-			if (cmp((*pp), r) <= 0)				\
-				return;					\
-			(*pp)->field = r->field;			\
-			r->field.he_left = l;				\
-			r->field.he_right = *pp;			\
-			*pp = r;					\
-			pp = &(*pp)->field.he_right;			\
-		}							\
+	for (pp = &head->hh_root; (*pp)->field.he_link[1] != NULL;) {	\
+		HEAP_TYPE_PREFIX type *link[2];				\
+		int c;							\
+		link[0] = (*pp)->field.he_link[0];			\
+		link[1] = (*pp)->field.he_link[1];			\
+		c = link[0] != NULL && cmp(link[0], link[1]) <= 0;	\
+		if (cmp((*pp), link[!c]) <= 0)				\
+			return;						\
+		(*pp)->field = link[!c]->field;				\
+		link[!c]->field.he_link[!c] = *pp;			\
+		link[!c]->field.he_link[c] = link[c];			\
+		*pp = link[!c];						\
+		pp = &(*pp)->field.he_link[!c];				\
 	}								\
 }
 
