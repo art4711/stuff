@@ -14,3 +14,14 @@ This is stuff. Some of it does things.
  heap/
    - Binary heap with in-struct linkage along the same principles as
      sys/tree.h in OpenBSD.
+
+ lock_recursion_is_bad/
+   - Favourite example for why lazily making your locks recursive is a
+     bad idea. This is a bug that was present in many unix-like systems
+     many years ago that made the filesystem leak uninitialized data.
+     At the moment of writing this it will deadlock the process on
+     macos and after a reboot the file will contain stuff from
+     uninitialized memory (technically it contains unitialized memory
+     before the reboot, but I haven't found a way to read it without
+     deadlocking).
+
