@@ -1,4 +1,4 @@
-This is stuff. It does things.
+This is stuff. Some of it does things.
 
  hello_elf_amd64_linux/
    - Experiement to see how small a proper hello world can be in a binary
@@ -6,3 +6,11 @@ This is stuff. It does things.
      120 bytes of headers for an ELF binary with one load section, I'd say
      it can't be reduced anymore.
 
+ avl/
+   - Ted Unangst wrote an avl tree implementation that never got used for
+     whatever he wrote it for. I beat it up to make it smaller and faster
+     and added an iterator to it.
+
+ heap/
+   - Binary heap with in-struct linkage along the same principles as
+     sys/tree.h in OpenBSD.
