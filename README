@@ -5,6 +5,15 @@ This is stuff. Some of it does things.
      whatever he wrote it for. I beat it up to make it smaller and faster
      and added an iterator to it.
 
+ flippedarray/
+   - Experiment to simulate the cache behavior of binary searching in an
+     array when we apply a function to the array index. The theory is
+     that if we reverse bits in the index (let's say the array has
+     2^5 elements, the index 10100 would be mapped to 00101) the first
+     few elements visited will be the first few elements of the array
+     and thus always in the cache. The simulation looks promising, but
+     this is completely unfinished.
+
  heap/
    - Binary heap with in-struct linkage along the same principles as
      sys/tree.h in OpenBSD.
