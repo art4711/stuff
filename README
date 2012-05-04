@@ -1,1 +1,8 @@
 This is stuff. It does things.
+
+ hello_elf_amd64_linux/
+   - Experiement to see how small a proper hello world can be in a binary
+     that runs on linux amd64 (ELF). 112 bytes. Considering that you need
+     120 bytes of headers for an ELF binary with one load section, I'd say
+     it can't be reduced anymore.
+
