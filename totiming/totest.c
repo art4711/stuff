@@ -57,9 +57,23 @@ to_fire(void *v)
 
 int ticks;
 
+static uint64_t
+timestamp(void)
+{
+	return mach_absolute_time();
+}
+
+static double
+ts2ns(uint64_t ts)
+{
+	static mach_timebase_info_data_t tb;
+	if (tb.denom == 0)
+		mach_timebase_info(&tb);
+	return ((double)ts * (double)tb.numer / (double)tb.denom);
+}
+
 void
 run_one(int nto, int nevents) {
-	mach_timebase_info_data_t tb;
 	uint64_t start, end;
 	uint64_t fs, as, ds;
 	uint64_t s;
@@ -85,7 +99,7 @@ run_one(int nto, int nevents) {
 
 	added = deleted = fired = 0;
 
-	start = mach_absolute_time();
+	start = timestamp();
 
 	for (i = 0; i < nevents; i++) {
 		struct myto *to;
@@ -99,10 +113,10 @@ run_one(int nto, int nevents) {
 		case 0:
 			ticks++;
 			fired++;
-			s = mach_absolute_time();
+			s = timestamp();
 			if (timeout_hardclock_update())
 				softclock(NULL);
-			fs += mach_absolute_time() - s;
+			fs += timestamp() - s;
 			break;
 		case 1:
 		case 2:
@@ -110,9 +124,9 @@ run_one(int nto, int nevents) {
 				LIST_REMOVE(to, list);
 				LIST_INSERT_HEAD(&inactive, to, list);
 				deleted++;
-				s = mach_absolute_time();
+				s = timestamp();
 				timeout_del(&to->to);
-				ds += mach_absolute_time() - s;
+				ds += timestamp() - s;
 			}
 			break;
 		case 3:
@@ -127,19 +141,17 @@ run_one(int nto, int nevents) {
 			LIST_REMOVE(to, list);
 			LIST_INSERT_HEAD(&active, to, list);
 			rt = random_time();
-			s = mach_absolute_time();
+			s = timestamp();
 			timeout_add(&to->to, rt);
-			as += mach_absolute_time() - s;
+			as += timestamp() - s;
 			break;
 		}
 	}
-	end = mach_absolute_time();
+	end = timestamp();
 
-	mach_timebase_info(&tb);
 
-#define at2d(at) ((double)(at) * (double)tb.numer / (double)tb.denom)
-#define av(at,s) (at2d(at) / (double)s)
-	elapsed = at2d(end - start);
+#define av(at,s) (ts2ns(at) / (double)s)
+	elapsed = ts2ns(end - start);
 
 	printf("%d %d %f %f %f %f\n", nto, nevents, elapsed / 1000000000.0, av(as, added), av(ds, deleted), av(fs, fired));
 	fflush(stdout);
