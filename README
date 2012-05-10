@@ -1,4 +1,6 @@
-This is stuff. Some of it does things.
+This is stuff. Some of it does things. Mostly just personal backup, but
+hey if it's useful for you the files have licenses, knock yourself out.
+If the files don't have licenses poke me and I'll fix that.
 
  alloca_games/
   - Did you know that alloca() and variable length arrays shouldn't be
@@ -39,3 +41,6 @@ This is stuff. Some of it does things.
      before the reboot, but I haven't found a way to read it without
      deadlocking).
 
+ totiming/
+   - Experiments for measuring performance of different kern_timeout
+     implementations. 
