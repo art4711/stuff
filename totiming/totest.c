@@ -126,7 +126,6 @@ run_one(int nto, int nevents) {
 		 */
 		switch(arc4random_uniform(10)) {
 		case 0:
-			ticks++;
 			fired++;
 			s = timestamp();
 			if (timeout_hardclock_update())
