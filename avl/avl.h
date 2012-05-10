@@ -17,7 +17,6 @@
 #ifndef __AVL_H__
 #define __AVL_H__
 
-#include "macros.h"
 
 struct avl_node {
 	struct avl_node *link[2];
@@ -54,7 +53,7 @@ void avl_insert(struct avl_node *, struct avl_node **, avl_comp_fn);
 void avl_delete(struct avl_node *, struct avl_node **, avl_comp_fn);
 struct avl_node *avl_lookup(const struct avl_node *, struct avl_node **, avl_comp_fn);
 struct avl_node *avl_search(const struct avl_node *, struct avl_node **, avl_comp_fn);
-void avl_check(struct avl_node *, avl_comp_fn) NONNULL_ALL;
+void avl_check(struct avl_node *, avl_comp_fn);
 
 void avl_it_init(struct avl_it *, struct avl_node *, struct avl_node *,
     struct avl_node *, avl_comp_fn);
