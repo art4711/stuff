@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <err.h>
+#include <assert.h>
 
 #include <inttypes.h>
 #include <sys/time.h>
@@ -15,6 +16,7 @@
 #endif
 #endif
 
+int ticks;
 
 /*
  * We only generate 0-100k. 100k is 1000 seconds.
@@ -30,7 +32,7 @@ random_time(void)
 	switch (arc4random_uniform(4)) {
 	case 0:
 	case 1:
-		return arc4random_uniform(50);
+		return arc4random_uniform(49) + 1;
 	case 2:
 		return 50 + arc4random_uniform(1000 - 50);
 	case 3:
@@ -56,11 +58,11 @@ to_fire(void *v)
 
 	fired++;
 
+	assert(to->to.to_time == ticks);
+
 	LIST_REMOVE(to, list);
 	LIST_INSERT_HEAD(&inactive, to, list);
 }
-
-int ticks;
 
 static uint64_t
 timestamp(void)
