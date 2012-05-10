@@ -51,13 +51,17 @@
  * These functions may be called in interrupt context (anything below splhigh).
  */
 
+#include "avl.h"
 struct circq {
 	struct circq *next;		/* next element */
 	struct circq *prev;		/* previous element */
 };
 
 struct timeout {
-	struct circq to_list;	/* timeout queue, don't move */
+	union {
+		struct circq to_list;	/* timeout queue, don't move */
+		struct avl_node to_tree;
+	};
 	void (*to_func)(void *);	/* function to call */
 	void *to_arg;			/* function argument */
 	int to_time;			/* ticks on event */

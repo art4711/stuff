@@ -55,10 +55,13 @@ static void
 to_fire(void *v)
 {
 	struct myto *to = v;
+	static int lasttime;
 
 	fired++;
 
 	assert(to->to.to_time == ticks);
+	assert(to->to.to_time >= lasttime);
+	lasttime = to->to.to_time;
 
 	LIST_REMOVE(to, list);
 	LIST_INSERT_HEAD(&inactive, to, list);

@@ -8,6 +8,6 @@ set xlabel "timeouts"
 plot "test.out" using 1:4 title "add" with lines, \
      "test.out" using 1:5 title "del" with lines, \
      "test.out" using 1:6 title "fire" with lines, \
-     "test.out.old" using 1:4 title "oadd" with lines, \
-     "test.out.old" using 1:5 title "odel" with lines, \
-     "test.out.old" using 1:6 title "ofire" with lines
+     "test-avl.out" using 1:4 title "avl add" with lines, \
+     "test-avl.out" using 1:5 title "avl del" with lines, \
+     "test-avl.out" using 1:6 title "avl fire" with lines
