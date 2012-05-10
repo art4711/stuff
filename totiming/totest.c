@@ -2,12 +2,17 @@
 #include <stdlib.h>
 #include <err.h>
 
+#include <inttypes.h>
 #include <sys/time.h>
 #include <sys/queue.h>
 #include "timeout.h"
 
+#if 0
+#include <sys/resource.h>
+#else
 #ifdef __MACH__
 #include <mach/mach_time.h>
+#endif
 #endif
 
 
@@ -60,16 +65,26 @@ int ticks;
 static uint64_t
 timestamp(void)
 {
+#if 0
+	struct rusage ru;
+	getrusage(RUSAGE_SELF, &ru);
+	return ((uint64_t)ru.ru_utime.tv_sec * 1000000ULL) + (uint64_t)ru.ru_utime.tv_usec;
+#else
 	return mach_absolute_time();
+#endif
 }
 
 static double
 ts2ns(uint64_t ts)
 {
+#if 0
+	return (double)ts * 1000.0;
+#else
 	static mach_timebase_info_data_t tb;
 	if (tb.denom == 0)
 		mach_timebase_info(&tb);
 	return ((double)ts * (double)tb.numer / (double)tb.denom);
+#endif
 }
 
 void
