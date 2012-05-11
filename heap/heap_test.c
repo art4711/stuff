@@ -15,7 +15,7 @@
 #endif
 
 struct el {
-	HEAP_ENTRY(el) link;
+	HEAP_ENTRY(struct el) link;
 	int val;
 };
 
@@ -25,11 +25,11 @@ el_cmp(const struct el *a, const struct el *b)
 	return a->val - b->val;
 }
 
-HEAP_HEAD(h, el) heap_root;
+HEAP_HEAD(h, struct el) heap_root;
 
-HEAP_PROTOTYPE(h, el, link, el_cmp)
+HEAP_PROTOTYPE(h, struct el, link, el_cmp, static)
 
-HEAP_GENERATE(h, el, link, el_cmp)
+HEAP_GENERATE(h, struct el, link, el_cmp, static)
 
 static uint64_t
 timestamp(void)
@@ -55,6 +55,20 @@ ts2ns(uint64_t ts)
 	return ((double)ts * (double)tb.numer / (double)tb.denom);
 #endif
 }
+
+#if 0
+static int
+heap_depth(struct el *el)
+{
+	int l, r;
+	if (el == NULL)
+		return 0;
+	l = heap_depth(el->link.he_link[0]);
+	r = heap_depth(el->link.he_link[1]);
+
+	return 1 + (l > r ? l : r);
+}
+#endif
 
 void
 run_one(int nelem)
