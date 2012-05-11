@@ -86,12 +86,11 @@ funprefix void	name##_HEAP_UPDATE_HEAD(struct name *);
 #define HEAP_GENERATE(name, type, field, cmp, funprefix)		\
 									\
 funprefix void								\
-name##_HEAP_INSERT(struct name *head, type *el)				\
+name##_HEAP_INSERT(struct name __restrict *head, type __restrict *el)	\
 {									\
 	type **pp;							\
 	int n;								\
 									\
-	el->field.he_link[0] = el->field.he_link[1] = NULL;	       	\
 	pp = &head->hh_root;						\
 	for (n = ++head->hh_num; n > 1; n >>= 1) {			\
 		if (cmp(el, *pp) < 0) {					\
@@ -99,11 +98,11 @@ name##_HEAP_INSERT(struct name *head, type *el)				\
 			el->field = t->field;				\
 			*pp = el;					\
 			el = t;						\
-			t->field.he_link[0] = t->field.he_link[1] = NULL;\
 		}							\
 		pp = &(*pp)->field.he_link[!(n & 1)];			\
 	}								\
 	*pp = el;							\
+	el->field.he_link[0] = el->field.he_link[1] = NULL;	       	\
 }									\
 									\
 funprefix void								\
