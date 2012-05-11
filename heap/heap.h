@@ -47,7 +47,7 @@ struct name {								\
 #define HEAP_UPDATE_HEAD(name, head) name##_HEAP_UPDATE_HEAD(head)
 
 #define HEAP_PROTOTYPE(name, type, field, cmp, funprefix)		\
-funprefix int    name##_HEAP_linkin(type **pp, long n, type *e);	\
+funprefix void    name##_HEAP_linkin(type **pp, long n, type *e);	\
 funprefix void	name##_HEAP_INSERT(struct name *, type *);		\
 funprefix void	name##_HEAP_REMOVE_HEAD(struct name *);			\
 funprefix void	name##_HEAP_UPDATE_HEAD(struct name *);
@@ -86,48 +86,24 @@ funprefix void	name##_HEAP_UPDATE_HEAD(struct name *);
 
 #define HEAP_GENERATE(name, type, field, cmp, funprefix)		\
 									\
-funprefix int								\
-name##_HEAP_olinkin(type **pp, long n, type *e)				\
-{									\
-	int c;								\
-	if (n == 1) {							\
-		*pp = e;						\
-		return 1;						\
-	}								\
-									\
-	c = n & 1;							\
-	if (name##_HEAP_linkin(&((*pp)->field.he_link[!c]), n>>1, e) && \
-	    cmp((*pp), e) > 0) {					\
-		type *x = (*pp)->field.he_link[c];			\
-		(*pp)->field = e->field; 				\
-		e->field.he_link[!c] = *pp;				\
-		e->field.he_link[c] = x;				\
-		*pp = e;						\
-		return 1;						\
-	}								\
-	return 0;							\
-}									\
-									\
-funprefix int								\
+funprefix void	       						\
 name##_HEAP_linkin(type **pp, long n, type *e)				\
 {									\
 	int c;								\
 	if (n == 1) {							\
 		*pp = e;						\
-		return 1;						\
+		return;						\
 	}								\
-									\
+\
+	if (cmp(e, *pp) < 0) {\
+		type *t = *pp;\
+		e->field = t->field;\
+		*pp = e;\
+		e = t;\
+		t->field.he_link[0] = t->field.he_link[1] = NULL; \
+	}\
 	c = n & 1;							\
-	if (name##_HEAP_linkin(&((*pp)->field.he_link[!c]), n>>1, e) && \
-	    cmp((*pp), e) > 0) {					\
-		type *x = (*pp)->field.he_link[c];			\
-		(*pp)->field = e->field; 				\
-		e->field.he_link[!c] = *pp;				\
-		e->field.he_link[c] = x;				\
-		*pp = e;						\
-		return 1;						\
-	}								\
-	return 0;							\
+	name##_HEAP_linkin(&((*pp)->field.he_link[!c]), n>>1, e);	\
 }									\
 									\
 funprefix void								\
