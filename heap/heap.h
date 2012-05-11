@@ -47,7 +47,6 @@ struct name {								\
 #define HEAP_UPDATE_HEAD(name, head) name##_HEAP_UPDATE_HEAD(head)
 
 #define HEAP_PROTOTYPE(name, type, field, cmp, funprefix)		\
-funprefix void    name##_HEAP_linkin(type **pp, long n, type *e);	\
 funprefix void	name##_HEAP_INSERT(struct name *, type *);		\
 funprefix void	name##_HEAP_REMOVE_HEAD(struct name *);			\
 funprefix void	name##_HEAP_UPDATE_HEAD(struct name *);
@@ -86,31 +85,25 @@ funprefix void	name##_HEAP_UPDATE_HEAD(struct name *);
 
 #define HEAP_GENERATE(name, type, field, cmp, funprefix)		\
 									\
-funprefix void	       						\
-name##_HEAP_linkin(type **pp, long n, type *e)				\
-{									\
-	int c;								\
-	if (n == 1) {							\
-		*pp = e;						\
-		return;						\
-	}								\
-\
-	if (cmp(e, *pp) < 0) {\
-		type *t = *pp;\
-		e->field = t->field;\
-		*pp = e;\
-		e = t;\
-		t->field.he_link[0] = t->field.he_link[1] = NULL; \
-	}\
-	c = n & 1;							\
-	name##_HEAP_linkin(&((*pp)->field.he_link[!c]), n>>1, e);	\
-}									\
-									\
 funprefix void								\
 name##_HEAP_INSERT(struct name *head, type *el)				\
 {									\
+	type **pp;							\
+	int n;								\
+									\
 	el->field.he_link[0] = el->field.he_link[1] = NULL;	       	\
-	name##_HEAP_linkin(&head->hh_root, ++head->hh_num, el);		\
+	pp = &head->hh_root;						\
+	for (n = ++head->hh_num; n > 1; n >>= 1) {			\
+		if (cmp(el, *pp) < 0) {					\
+			type *t = *pp;					\
+			el->field = t->field;				\
+			*pp = el;					\
+			el = t;						\
+			t->field.he_link[0] = t->field.he_link[1] = NULL;\
+		}							\
+		pp = &(*pp)->field.he_link[!(n & 1)];			\
+	}								\
+	*pp = el;							\
 }									\
 									\
 funprefix void								\
