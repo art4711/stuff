@@ -9,6 +9,9 @@ all: runtests
 heap_test: heap_test.o
 	cc -o heap_test heap_test.o
 
-runtests: heap_test
-	./heap_test 1000
+test.out: heap_test
+	./heap_test | tee test.out
+
+runtests: test.out
+
 

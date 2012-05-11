@@ -56,8 +56,8 @@ ts2ns(uint64_t ts)
 #endif
 }
 
-int
-main(int argc, char **argv)
+void
+run_one(int nelem)
 {
 	struct el *elems;
 	struct el *el;
@@ -65,19 +65,12 @@ main(int argc, char **argv)
 	uint64_t s;
 	uint64_t it, ut, rt;
 	int inserts, updates, removes;
-	int nelem;
 	int added;
-
-	if (argc != 2) {
-		fprintf(stderr, "Usage: %s <nelem>\n", argv[0]);
-		exit(1);
-	}
-
-	nelem = atoi(argv[1]);
 
 	if ((elems = calloc(nelem, sizeof(*elems))) == NULL)
 		err(1, "calloc");
 
+	HEAP_INIT(&heap_root);
 	inserts = updates = removes = 0;
 	it = ut = rt = 0;
 
@@ -124,6 +117,35 @@ main(int argc, char **argv)
 	}
 
 	printf("%d %f %f %f\n", nelem, ts2ns(it) / inserts, ts2ns(ut) / updates, ts2ns(rt) / removes);
+	fflush(stdout);
+	free(elems);
+}
+
+#ifndef nitems
+#define nitems(_a)	(sizeof((_a)) / sizeof((_a)[0]))
+#endif
+int tests[] = {
+	10, 20, 50, 100, 200, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000
+};
+
+int
+main(int argc, char **argv)
+{
+	int i;
+
+	if (argc == 2) {
+		run_one(atoi(argv[1]));
+		return 0;
+	}
+
+	for (i = 0; i < nitems(tests) - 1; i++) {
+		int distance = tests[i + 1] - tests[i];
+		int steps = distance > 20 ? 20 : distance;
+		int j;
+		for (j = 0; j < steps; j++) {
+			run_one(((tests[i + 1] - tests[i]) / steps) * j + tests[i]);
+		}
+	}
 
 	return 0;
 }
