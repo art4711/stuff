@@ -1,4 +1,5 @@
 CFLAGS=-O2 -Wall
+#CFLAGS=-g -Wall
 CPPFLAGS=-DTEST_HARNESS -DDEBUG -I../avl
 VPATH=../avl
 

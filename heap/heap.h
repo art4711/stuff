@@ -17,6 +17,10 @@
 #ifndef HEAP_H
 #define HEAP_H
 
+/*
+ * HEAP implements INSERT, REMOVE_HEAD, UPDATE_HEAD.
+ * PHEAP implements INSERT, REMOVE, UPDATE
+ */
 #define HEAP_HEAD(name, type) 						\
 struct name {								\
 	type *hh_root;							\
@@ -28,8 +32,7 @@ struct name {								\
 		type *he_link[2];					\
 	}
 
-#define HEAP_ENTRY_INITIALIZER						\
-	{ NULL, NULL }
+#define HEAP_ENTRY_INITIALIZER { NULL, NULL }
 
 #define HEAP_INIT(head)	do {						\
 	(head)->hh_root = NULL;						\
@@ -88,34 +91,34 @@ funprefix void	name##_HEAP_UPDATE_HEAD(struct name *);
 funprefix void								\
 name##_HEAP_INSERT(struct name __restrict *head, type __restrict *el)	\
 {									\
-	type **pp;							\
+	type **lp;							\
 	int n;								\
 									\
-	pp = &head->hh_root;						\
+	lp = &head->hh_root;						\
 	for (n = ++head->hh_num; n > 1; n >>= 1) {			\
-		if (cmp(el, *pp) < 0) {					\
-			type *t = *pp;					\
+		if (cmp(el, *lp) < 0) {					\
+			type *t = *lp;					\
 			el->field = t->field;				\
-			*pp = el;					\
+			*lp = el;					\
 			el = t;						\
 		}							\
-		pp = &(*pp)->field.he_link[!(n & 1)];			\
+		lp = &(*lp)->field.he_link[!(n & 1)];			\
 	}								\
-	*pp = el;							\
+	*lp = el;							\
 	el->field.he_link[0] = el->field.he_link[1] = NULL;	       	\
 }									\
 									\
 funprefix void								\
 name##_HEAP_REMOVE_HEAD(struct name *head)				\
 {									\
-	type **pp, *el, *r;						\
+	type **lp, *el, *r;						\
 	int n;								\
-	for (n = head->hh_num, pp = &head->hh_root; n != 1; n >>= 1)	\
-		pp = &(*pp)->field.he_link[!(n & 1)];			\
-	el = *pp;							\
+	for (n = head->hh_num, lp = &head->hh_root; n != 1; n >>= 1)	\
+		lp = &(*lp)->field.he_link[!(n & 1)];			\
+	el = *lp;							\
 	r = head->hh_root;						\
 	head->hh_root = el;						\
-	*pp = NULL;							\
+	*lp = NULL;							\
 	el->field = r->field;						\
 	head->hh_num--;							\
 	name##_HEAP_UPDATE_HEAD(head);					\
@@ -124,26 +127,143 @@ name##_HEAP_REMOVE_HEAD(struct name *head)				\
 funprefix void								\
 name##_HEAP_UPDATE_HEAD(struct name *head)				\
 {									\
-	type **pp;							\
+	type **lp;							\
 									\
 	if (head->hh_root == NULL)					\
 		return;							\
 									\
-	for (pp = &head->hh_root; (*pp)->field.he_link[1] != NULL;) {	\
+	for (lp = &head->hh_root; (*lp)->field.he_link[1] != NULL;) {	\
 		type *link[2];						\
 		int c;							\
-		link[0] = (*pp)->field.he_link[0];			\
-		link[1] = (*pp)->field.he_link[1];			\
+		link[0] = (*lp)->field.he_link[0];			\
+		link[1] = (*lp)->field.he_link[1];			\
 		c = link[0] != NULL && cmp(link[0], link[1]) <= 0;	\
-		if (cmp((*pp), link[!c]) <= 0)				\
+		if (cmp((*lp), link[!c]) <= 0)				\
 			return;						\
-		(*pp)->field = link[!c]->field;				\
-		link[!c]->field.he_link[!c] = *pp;			\
+		(*lp)->field = link[!c]->field;				\
+		link[!c]->field.he_link[!c] = *lp;			\
 		link[!c]->field.he_link[c] = link[c];			\
-		*pp = link[!c];						\
-		pp = &(*pp)->field.he_link[!c];				\
+		*lp = link[!c];						\
+		lp = &(*lp)->field.he_link[!c];				\
 	}								\
 }
+
+#define PHEAP_HEAD(name, type) HEAP_HEAD(name, type)
+#define PHEAP_ENTRY(type)						\
+	struct {							\
+		type *he_link[2];					\
+		type *he_parent;					\
+	}
+#define PHEAP_ENTRY_INITIALIZER { NULL, NULL, NULL }
+#define PHEAP_INIT(head) HEAP_INIT(head)
+#define PHEAP_FIRST(head) HEAP_FIRST(head)
+#define PHEAP_LEFT(el, field) HEAP_LEFT(el, field)
+#define PHEAP_RIGHT(el, field) HEAP_RIGHT(el, field)
+#define PHEAP_EMPTY(head) HEAP_EMPTY(head)
+#define PHEAP_INSERT(name, head, item) name##_HEAP_INSERT(head, item)
+#define PHEAP_REMOVE(name, head, item) name##_HEAP_REMOVE(head, item)
+#define PHEAP_UPDATE(name, head, item) name##_HEAP_UPDATE(head, item)
+#define PHEAP_REMOVE_HEAD(name, head) name##_HEAP_REMOVE(head, PHEAP_FIRST(head))
+#define PHEAP_UPDATE_HEAD(name, head) name##_HEAP_UPDATE(head, PHEAP_FIRST(head))
+
+#define PHEAP_PROTOTYPE(name, type, field, cmp, funprefix)		\
+funprefix void name##_HEAP_INSERT(struct name *, type *);		\
+funprefix void name##_HEAP_REMOVE(struct name *, type *);		\
+funprefix void name##_HEAP_UPDATE(struct name *, type *);
+
+#define PHEAP_GENERATE(name, type, field, cmp, funprefix)		\
+funprefix void								\
+name##_HEAP_INSERT(struct name *head, type *el)				\
+{									\
+	type **lp, *parent = NULL;					\
+	int n;								\
+									\
+	lp = &head->hh_root;						\
+	for (n = ++head->hh_num; n > 1; n >>= 1) {			\
+		if (cmp(el, *lp) < 0) {					\
+			type *t = *lp;					\
+			el->field = t->field;				\
+			*lp = el;					\
+			el = t;						\
+		}							\
+		parent = *lp;						\
+		lp = &(*lp)->field.he_link[!(n & 1)];			\
+	}								\
+	*lp = el;							\
+	el->field.he_link[0] = el->field.he_link[1] = NULL;	       	\
+	el->field.he_parent = parent;					\
+}									\
+funprefix void								\
+name##_HEAP_REMOVE(struct name *head, type *el)				\
+{									\
+	type **lp, *last, *parent;					\
+	int n;								\
+	for (n = head->hh_num, lp = &head->hh_root; n != 1; n >>= 1)	\
+		lp = &(*lp)->field.he_link[!(n & 1)];			\
+	head->hh_num--;							\
+	last = *lp;							\
+	*lp = NULL;							\
+	if (last == el)							\
+		return;							\
+	if ((parent = el->field.he_parent) == NULL)			\
+		head->hh_root = last;					\
+	else								\
+		parent->field.he_link[parent->field.he_link[1] == el] = last;	\
+	last->field = el->field;					\
+	name##_HEAP_UPDATE(head, last);					\
+}									\
+									\
+/*									\
+ * Swaps two elements where one is the parent of the other.		\
+ */									\
+funprefix void								\
+name##_HEAP_SWAP(struct name *head, type *parent, type *el)		\
+{									\
+	int el_link = parent->field.he_link[0] != el;			\
+	type *pf, *pp;							\
+									\
+	if ((pp = parent->field.he_parent) == NULL)			\
+		head->hh_root = el;					\
+	else								\
+		pp->field.he_link[pp->field.he_link[1] == parent] = el;	\
+									\
+	el->field.he_parent = parent->field.he_parent;			\
+	parent->field.he_parent = el;					\
+	pf = parent->field.he_link[!el_link];				\
+	parent->field.he_link[0] = el->field.he_link[0];		\
+	parent->field.he_link[1] = el->field.he_link[1];		\
+	el->field.he_link[el_link] = parent;				\
+	el->field.he_link[!el_link] = pf;				\
+}									\
+									\
+funprefix void								\
+name##_HEAP_UPDATE(struct name *head, type *el)				\
+{									\
+	type *parent;							\
+	/*								\
+	 * First see if it needs to go up.				\
+	 */								\
+	while ((parent = el->field.he_parent) && cmp(el, parent) < 0) {	\
+		name##_HEAP_SWAP(head, parent, el);			\
+	}								\
+	/*								\
+	 * Now look if we need to push it down.				\
+	 *								\
+	 * Even when the element has been propagated up, it can		\
+	 * still break the heap invariant on the last element.		\
+	 *								\
+	 * 1 gets filled in before 0					\
+	 */								\
+	while (el->field.he_link[1] != NULL) {				\
+		int lower;						\
+		lower = el->field.he_link[0] == NULL ||			\
+		    cmp(el->field.he_link[0], el->field.he_link[1]) > 0;\
+		if (cmp(el, el->field.he_link[lower]) <= 0)		\
+			break;						\
+		name##_HEAP_SWAP(head, el, el->field.he_link[lower]);	\
+	}								\
+}
+
 
 #endif /*HEAP_H*/
 

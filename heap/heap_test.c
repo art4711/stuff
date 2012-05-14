@@ -15,7 +15,7 @@
 #endif
 
 struct el {
-	HEAP_ENTRY(struct el) link;
+	PHEAP_ENTRY(struct el) link;
 	int val;
 };
 
@@ -25,11 +25,11 @@ el_cmp(const struct el *a, const struct el *b)
 	return a->val - b->val;
 }
 
-HEAP_HEAD(h, struct el) heap_root;
+PHEAP_HEAD(h, struct el) heap_root;
 
-HEAP_PROTOTYPE(h, struct el, link, el_cmp, static)
+PHEAP_PROTOTYPE(h, struct el, link, el_cmp, static)
 
-HEAP_GENERATE(h, struct el, link, el_cmp, static)
+PHEAP_GENERATE(h, struct el, link, el_cmp, static)
 
 static uint64_t
 timestamp(void)
@@ -84,12 +84,12 @@ run_one(int nelem)
 	if ((elems = calloc(nelem, sizeof(*elems))) == NULL)
 		err(1, "calloc");
 
-	HEAP_INIT(&heap_root);
+	PHEAP_INIT(&heap_root);
 	inserts = updates = removes = 0;
 	it = ut = rt = 0;
 
 	added = 0;
-	while (added < nelem || HEAP_FIRST(&heap_root)) {
+	while (added < nelem || PHEAP_FIRST(&heap_root)) {
 		switch (arc4random_uniform(10)) {
 		case 0:
 		case 1:
@@ -101,28 +101,28 @@ run_one(int nelem)
 				el = &elems[added++];
 				el->val = lowest + arc4random_uniform(nelem);
 				s = timestamp();
-				HEAP_INSERT(h, &heap_root, el);
+				PHEAP_INSERT(h, &heap_root, el);
 				it += timestamp() - s;
 				inserts++;
 			}
 			break;
 		case 6:
 		case 7:
-			if ((el = HEAP_FIRST(&heap_root)) != NULL) {
+			if ((el = PHEAP_FIRST(&heap_root)) != NULL) {
 				el->val = lowest + arc4random_uniform(10);
 				s = timestamp();
-				HEAP_UPDATE_HEAD(h, &heap_root);
+				PHEAP_UPDATE_HEAD(h, &heap_root);
 				ut += timestamp() - s;
 				updates++;
 			}
 			break;
 		case 8:
 		case 9:
-			if ((el = HEAP_FIRST(&heap_root)) != NULL) {
+			if ((el = PHEAP_FIRST(&heap_root)) != NULL) {
 				assert(lowest <= el->val);
 				lowest = el->val;
 				s = timestamp();
-				HEAP_REMOVE_HEAD(h, &heap_root);
+				PHEAP_REMOVE_HEAD(h, &heap_root);
 				rt += timestamp() - s;
 				removes++;
 			}
