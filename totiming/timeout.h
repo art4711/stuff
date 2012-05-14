@@ -52,6 +52,7 @@
  */
 
 #include "avl.h"
+#include "heap.h"
 struct circq {
 	struct circq *next;		/* next element */
 	struct circq *prev;		/* previous element */
@@ -61,6 +62,7 @@ struct timeout {
 	union {
 		struct circq to_list;	/* timeout queue, don't move */
 		struct avl_node to_tree;
+		PHEAP_ENTRY(struct timeout) to_heap;
 	};
 	void (*to_func)(void *);	/* function to call */
 	void *to_arg;			/* function argument */
