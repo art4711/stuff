@@ -322,7 +322,7 @@ name##_HEAP_INSERT(struct name __restrict *head, type __restrict *el)	\
 	el->field.he_pos = head->hh_num;				\
 }									\
 funprefix void								\
-name##_HEAP_REMOVE(struct name *head, type *el)				\
+name##_HEAP_REMOVE(struct name *head, type __restrict *el)		\
 {									\
 	type **lp, *rep;						\
 	unsigned int n;							\
@@ -337,7 +337,7 @@ name##_HEAP_REMOVE(struct name *head, type *el)				\
 }									\
 									\
 /*									\
- * Update the element in position pos->he_pos with the element el.	\
+ * Update the element pos with the element el.				\
  */									\
 funprefix void								\
 name##_HEAP_UPDATE(struct name *head, type *pos, type *el)		\
@@ -370,7 +370,7 @@ name##_HEAP_UPDATE(struct name *head, type *pos, type *el)		\
 	 *								\
 	 * 0 gets filled in before 1					\
 	 */								\
-	while ((*lp)->field.he_link[0] != NULL) {			\
+	while (el->field.he_link[0] != NULL) {				\
 		type *l;						\
 		int lower;						\
 		lower = el->field.he_link[1] != NULL &&			\
@@ -379,15 +379,12 @@ name##_HEAP_UPDATE(struct name *head, type *pos, type *el)		\
 		if (cmp(el, l) <= 0)					\
 			break;						\
 		*lp = l;						\
-		l0 = l->field.he_link[0];				\
-		l1 = l->field.he_link[1];				\
-		p = l->field.he_pos;					\
-		l->field.he_link[lower] = el;				\
-		l->field.he_link[!lower] = el->field.he_link[!lower];	\
-		l->field.he_pos = el->field.he_pos;			\
-		el->field.he_link[0] = l0;				\
-		el->field.he_link[1] = l1;				\
-		el->field.he_pos = p;					\
+		l0 = el->field.he_link[!lower];				\
+		p = el->field.he_pos;					\
+		el->field = l->field;					\
+		l->field.he_link[lower]	= el;				\
+		l->field.he_link[!lower] = l0;				\
+		l->field.he_pos = p;					\
 		lp = &l->field.he_link[lower];				\
 	}								\
 }
