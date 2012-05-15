@@ -175,27 +175,6 @@ funprefix void name##_HEAP_UPDATE(struct name *, type *);
 
 #define PHEAP_GENERATE(name, type, field, cmp, funprefix)		\
 funprefix void								\
-name##_HEAP_INSERTx(struct name *head, type *el)			\
-{									\
-	type **lp, *parent = NULL;					\
-	int n;								\
-									\
-	lp = &head->hh_root;						\
-	for (n = ++head->hh_num; n > 1; n >>= 1) {			\
-		if (cmp(el, *lp) < 0) {					\
-			type *t = *lp;					\
-			el->field = t->field;				\
-			*lp = el;					\
-			el = t;						\
-		}							\
-		parent = *lp;						\
-		lp = &(*lp)->field.he_link[n & 1];			\
-	}								\
-	*lp = el;							\
-	el->field.he_link[0] = el->field.he_link[1] = NULL;	       	\
-	el->field.he_parent = parent;					\
-}									\
-funprefix void								\
 name##_HEAP_INSERT(struct name *head, type *el)				\
 {									\
 	type **lp, *parent = NULL;					\
@@ -288,6 +267,128 @@ name##_HEAP_UPDATE(struct name *head, type *el)				\
 		if (cmp(el, el->field.he_link[lower]) <= 0)		\
 			break;						\
 		name##_HEAP_SWAP(head,el->field.he_link[lower]);	\
+	}								\
+}
+
+#define CHEAP_HEAD(name, type) HEAP_HEAD(name, type)
+#define CHEAP_ENTRY(type)						\
+	struct {							\
+		type *he_link[2];					\
+		unsigned long he_pos;					\
+	}
+#define CHEAP_ENTRY_INITIALIZER { NULL, NULL, NULL }
+#define CHEAP_INIT(head) HEAP_INIT(head)
+#define CHEAP_FIRST(head) HEAP_FIRST(head)
+#define CHEAP_LEFT(el, field) HEAP_LEFT(el, field)
+#define CHEAP_RIGHT(el, field) HEAP_RIGHT(el, field)
+#define CHEAP_EMPTY(head) HEAP_EMPTY(head)
+#define CHEAP_INSERT(name, head, item) name##_HEAP_INSERT(head, item)
+#define CHEAP_REMOVE(name, head, item) name##_HEAP_REMOVE(head, item)
+#define CHEAP_UPDATE(name, head, item) name##_HEAP_UPDATE(head, item, item)
+#define CHEAP_REMOVE_HEAD(name, head) name##_HEAP_REMOVE(head, CHEAP_FIRST(head))
+#define CHEAP_UPDATE_HEAD(name, head) name##_HEAP_UPDATE(head, CHEAP_FIRST(head), CHEAP_FIRST(head))
+
+#define CHEAP_PROTOTYPE(name, type, field, cmp, funprefix)		\
+funprefix void name##_HEAP_INSERT(struct name *, type *);		\
+funprefix void name##_HEAP_REMOVE(struct name *, type *);		\
+funprefix void name##_HEAP_UPDATE(struct name *, type *, type*);
+
+#define CHEAP_GENERATE(name, type, field, cmp, funprefix)		\
+funprefix void								\
+name##_HEAP_INSERT(struct name __restrict *head, type __restrict *el)	\
+{									\
+	type **lp;							\
+	int n;								\
+									\
+	/*								\
+	 * Walk down to the position of the last element, replace	\
+	 * elements in our way with the new element if it's smaller.	\
+	 * Since any element in a heap can be replaced with a smaller	\
+	 * element as long as it's bigger or equal to the parent and	\
+	 * still retain the heap invariant.				\
+	 */								\
+	lp = &head->hh_root;						\
+	for (n = ++head->hh_num; n > 1; n >>= 1) {			\
+		if (cmp(el, *lp) < 0) {					\
+			type *t = *lp;					\
+			el->field = t->field;				\
+			*lp = el;					\
+			el = t;						\
+		}							\
+		lp = &(*lp)->field.he_link[n & 1];			\
+	}								\
+	*lp = el;							\
+	el->field.he_link[0] = el->field.he_link[1] = NULL;	       	\
+	el->field.he_pos = head->hh_num;				\
+}									\
+funprefix void								\
+name##_HEAP_REMOVE(struct name *head, type *el)				\
+{									\
+	type **lp, *rep;						\
+	unsigned int n;							\
+	for (n = head->hh_num, lp = &head->hh_root; n > 1; n >>= 1)	\
+		lp = &(*lp)->field.he_link[n & 1];			\
+	head->hh_num--;							\
+	rep = *lp;							\
+	*lp = NULL;							\
+	if (rep == el)							\
+		return;							\
+	name##_HEAP_UPDATE(head, el, rep);				\
+}									\
+									\
+/*									\
+ * Update the element in position pos->he_pos with the element el.	\
+ */									\
+funprefix void								\
+name##_HEAP_UPDATE(struct name *head, type *pos, type *el)		\
+{									\
+	type **lp;							\
+	type *l0, *l1;							\
+	unsigned long p = pos->field.he_pos;				\
+	unsigned long n;						\
+	l0 = pos->field.he_link[0];					\
+	l1 = pos->field.he_link[1];					\
+	lp = &head->hh_root;						\
+	for (n = p; n > 1; n >>= 1) {					\
+		if (cmp(el, *lp) < 0) {					\
+			type *t = *lp;					\
+			el->field = t->field;				\
+			*lp = el;					\
+			el = t;						\
+		}							\
+		lp = &(*lp)->field.he_link[n & 1];			\
+	}								\
+	el->field.he_link[0] = l0;					\
+	el->field.he_link[1] = l1;					\
+	el->field.he_pos = p;						\
+	*lp = el;							\
+	/*								\
+	 * Now look if we need to push it down.				\
+	 *								\
+	 * Even when the element has been propagated up, it can		\
+	 * still break the heap invariant on the last element.		\
+	 *								\
+	 * 0 gets filled in before 1					\
+	 */								\
+	while ((*lp)->field.he_link[0] != NULL) {			\
+		type *l;						\
+		int lower;						\
+		lower = el->field.he_link[1] != NULL &&			\
+		    cmp(el->field.he_link[0], el->field.he_link[1]) > 0;\
+		l = el->field.he_link[lower];				\
+		if (cmp(el, l) <= 0)					\
+			break;						\
+		*lp = l;						\
+		l0 = l->field.he_link[0];				\
+		l1 = l->field.he_link[1];				\
+		p = l->field.he_pos;					\
+		l->field.he_link[lower] = el;				\
+		l->field.he_link[!lower] = el->field.he_link[!lower];	\
+		l->field.he_pos = el->field.he_pos;			\
+		el->field.he_link[0] = l0;				\
+		el->field.he_link[1] = l1;				\
+		el->field.he_pos = p;					\
+		lp = &l->field.he_link[lower];				\
 	}								\
 }
 
