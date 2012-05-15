@@ -71,9 +71,9 @@ t_cmp(const struct timeout *a, const struct timeout *b)
 	return a->to_time - b->to_time;
 }
 
-PHEAP_HEAD(timeoutheap, struct timeout) to_heap;
-PHEAP_PROTOTYPE(timeoutheap, struct timeout, to_heap, t_cmp,)
-PHEAP_GENERATE(timeoutheap, struct timeout, to_heap, t_cmp,)
+CHEAP_HEAD(timeoutheap, struct timeout) to_heap;
+CHEAP_PROTOTYPE(timeoutheap, struct timeout, to_heap, t_cmp, static)
+CHEAP_GENERATE(timeoutheap, struct timeout, to_heap, t_cmp, static)
 
 /*
  * Some of the "math" in here is a bit tricky.
@@ -119,10 +119,10 @@ timeout_add(struct timeout *new, int to_ticks)
 	new->to_time = to_ticks + ticks;
 	new->to_flags &= ~TIMEOUT_TRIGGERED;
 	if (new->to_flags & TIMEOUT_ONQUEUE) {
-		PHEAP_UPDATE(timeoutheap, &to_heap, new);
+		CHEAP_UPDATE(timeoutheap, &to_heap, new);
 	} else {
 		new->to_flags |= TIMEOUT_ONQUEUE;
-		PHEAP_INSERT(timeoutheap, &to_heap, new);
+		CHEAP_INSERT(timeoutheap, &to_heap, new);
 	}
 	mtx_leave(&timeout_mutex);
 }
@@ -211,7 +211,7 @@ _timeout_del(struct timeout *to)
 {
 	int ret = 0;
 	if (to->to_flags & TIMEOUT_ONQUEUE) {
-		PHEAP_REMOVE(timeoutheap, &to_heap, to);
+		CHEAP_REMOVE(timeoutheap, &to_heap, to);
 		to->to_flags &= ~TIMEOUT_ONQUEUE;
 		ret = 1;
 	}
@@ -242,7 +242,7 @@ timeout_hardclock_update(void)
 
 	mtx_enter(&timeout_mutex);
 	ticks++;
-	ret = PHEAP_FIRST(&to_heap) ? PHEAP_FIRST(&to_heap)->to_time - ticks <= 0 : 0;
+	ret = CHEAP_FIRST(&to_heap) ? CHEAP_FIRST(&to_heap)->to_time - ticks <= 0 : 0;
 	mtx_leave(&timeout_mutex);
 
 	return (ret);
@@ -255,8 +255,8 @@ softclock(void *arg)
 	void (*fn)(void *);
 
 	mtx_enter(&timeout_mutex);
-	while ((to = PHEAP_FIRST(&to_heap)) && to->to_time - ticks <= 0) {
-		_timeout_del(to);
+	while ((to = CHEAP_FIRST(&to_heap)) && to->to_time - ticks <= 0) {
+		CHEAP_REMOVE(timeoutheap, &to_heap, to);
 #ifdef DEBUG
 		if (to->to_time - ticks < 0)
 			printf("timeout delayed %d\n", to->to_time -

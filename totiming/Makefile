@@ -24,5 +24,5 @@ test-avl.out: totest-avl
 test-heap.out: totest-heap
 	./totest-heap | tee test-heap.out
 
-runtests:: test-heap.out test-avl.out test.out
+runtests:: test-heap.out #test-avl.out test.out
 
