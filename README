@@ -31,6 +31,9 @@ If the files don't have licenses poke me and I'll fix that.
      120 bytes of headers for an ELF binary with one load section, I'd say
      it can't be reduced anymore.
 
+ linker_set/
+   - FreeBSD style linker sets.
+
  lock_recursion_is_bad/
    - Favourite example for why lazily making your locks recursive is a
      bad idea. This is a bug that was present in many unix-like systems
