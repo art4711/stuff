@@ -21,6 +21,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <stdio.h>
+#include <errno.h>
 #include <err.h>
 
 int
@@ -56,9 +57,16 @@ main(int argc, char **argv)
 	if (ptrace(PT_ATTACH, p, NULL, 0) == -1) {
 		err(1, "PT_ATTACH");
 	}
-	r = ptrace(PT_READ_I, p, d, 0);
+	if (kill(p, SIGSTOP) == -1) {
+		err(1, "stop");
+	}
+	if (wait(NULL) == -1) {
+		err(1, "wait");
+	}
+	errno = 0;
+	r = ptrace(PT_READ_D, p, (void *)&fd, sizeof(int));
 
-	warn("ptrace: %d", r);
+	warn("PT_READ_D: %d", r);
 
 	kill(p, 9);
 	wait(NULL);
