@@ -63,10 +63,14 @@ main(int argc, char **argv)
 	if (wait(NULL) == -1) {
 		err(1, "wait");
 	}
-	errno = 0;
-	r = ptrace(PT_READ_D, p, (void *)&fd, sizeof(int));
 
+	errno = 0;
+	r = ptrace(PT_READ_D, p, (void *)d, sizeof(int));
 	warn("PT_READ_D: %d", r);
+
+	if (ptrace(PT_DETACH, p, NULL, 0) == -1) {
+		err(1, "PT_DETACH");
+	}
 
 	kill(p, 9);
 	wait(NULL);
