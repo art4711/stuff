@@ -65,7 +65,7 @@ main(int argc, char **argv)
 	}
 
 	errno = 0;
-	r = ptrace(PT_READ_D, p, (void *)d, sizeof(int));
+	r = ptrace(PT_READ_D, p, d, 0);
 	warn("PT_READ_D: %d", r);
 
 	if (ptrace(PT_DETACH, p, NULL, 0) == -1) {
