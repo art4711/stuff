@@ -21,13 +21,8 @@
 #include <mach-o/getsect.h>
 #include <mach-o/loader.h>
 
-#ifdef __LP64__
-#define link_set_getsect getsectdatafromheader_64
-#define link_set_sz uint64_t
-#else
-#define link_set_getsect getsectdatafromheader
-#define link_set_sz uint32_t
-#endif
+#define link_set_getsect getsectiondata
+#define link_set_sz unsigned long
 
 #define LINKER_SET_DECLARE(set, etype)					\
 	etype **__s_lset_##set;					\
